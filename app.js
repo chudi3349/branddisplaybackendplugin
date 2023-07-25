@@ -5,6 +5,7 @@ const mysql = require('mysql2');
 const multer = require('multer');
 const path = require('path');
 
+
 // Create the App
 const app = express();
 
@@ -38,6 +39,7 @@ pool.getConnection((err, connection) => {
 // Parse JSON bodies
 app.use(bodyParser.json());
 
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: 'uploads/', // Set the destination directory for storing uploaded files
@@ -49,6 +51,14 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+
+//Define a route to handle the save post request
+app.post('/save', (req, res) =>{
+  const {postId, location} = req.body;
+  console.log("I am here: ", req.body)
+})
+
 
 // Define a route
 app.post('/add', upload.single('picture'), (req, res) => {
@@ -67,9 +77,12 @@ app.post('/add', upload.single('picture'), (req, res) => {
   const annualRate = req.body.annualRate;
   const geoTags = req.body.geoTags;
   const picture = req.file; // Access the uploaded picture file via req.file
+  const locationName = req.body.locationName
+
+  console.log("This is the location Name: ",locationName)
 
   const query =
-    'INSERT INTO data (mediaType, dimension, imageArea, material, finishing, trafficSpeed, trafficCount, franchise, visibility, approach, illumination, availability, annualRate, geoTags, picture) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    'INSERT INTO data (mediaType, dimension, imageArea, material, finishing, trafficSpeed, trafficCount, franchise, visibility, approach, illumination, availability, annualRate, geoTags, picture, locationName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
   const values = [
     mediaType,
     dimension,
@@ -86,6 +99,7 @@ app.post('/add', upload.single('picture'), (req, res) => {
     annualRate,
     geoTags,
     picture ? picture.filename : null, // Store the filename in the database
+    locationName,
   ];
 
   pool.query(query, values, (error, results) => {
@@ -148,14 +162,57 @@ app.get('/:postId', (req, res) => {
 
 
 // Define a route to handle updating a post
-app.put('/edit/:postId', (req, res) => {
-    const postId = req.params.postId;
-    const updatedData = req.body; // Updated post data
-  
-    // Implement the logic to update the post in the database based on postId and updatedData
-  
-    res.send('Post updated successfully');
+app.put('/edit/:postId', upload.single('picture'), (req, res) => {
+  const postId = req.params.postId;
+  const mediaType = req.body.mediaType;
+  const dimension = req.body.dimension;
+  const imageArea = req.body.imageArea;
+  const material = req.body.material;
+  const finishing = req.body.finishing;
+  const trafficSpeed = req.body.trafficSpeed;
+  const trafficCount = req.body.trafficCount;
+  const franchise = req.body.franchise;
+  const visibility = req.body.visibility;
+  const approach = req.body.approach;
+  const illumination = req.body.illumination;
+  const availability = req.body.availability;
+  const annualRate = req.body.annualRate;
+  const geoTags = req.body.geoTags;
+  const picture = req.file; // Access the uploaded picture file via req.file
+  const locationName = req.body.locationName;
+
+  // Construct the updatedData object with the field-value pairs to be updated
+  const updatedData = {
+    mediaType,
+    dimension,
+    imageArea,
+    material,
+    finishing,
+    trafficSpeed,
+    trafficCount,
+    franchise,
+    visibility,
+    approach,
+    illumination,
+    availability,
+    annualRate,
+    geoTags,
+    picture: picture ? picture.filename : null, // Use the filename of the uploaded picture if available
+    locationName
+  };
+
+
+  // Run the UPDATE query to update the post in the database
+  pool.query('UPDATE data SET ? WHERE id = ?', [updatedData, postId], (error, results) => {
+    if (error) {
+      console.error('Error updating post in the database:', error);
+      res.status(500).send('Error updating post in the database');
+    } else {
+      console.log('Post updated successfully.');
+      res.send('Post updated successfully');
+    }
   });
+});
 
   
   // Define a route to handle deleting a post
